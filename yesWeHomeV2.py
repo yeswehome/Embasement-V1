@@ -1,12 +1,269 @@
 import os
 import tkinter as tk
 from tkinter import filedialog, messagebox
+import tkinter.ttk as ttk
 import pandas as pd
+from PIL import Image, ImageTk
 
 # En-tête du fichier CSV pour les colonnes
 csv_header = "Caract_Collection;Produits_ReferenceFabriquant;Produits_Libelle;Caract_FamilleProduit;Produits_Description;Produits_Points;ProduitEcotaxe_Code_EcoMob3;ProduitEcotaxe_MontantHT_EcoMob3;Caract_Longueur;Caract_Hauteur;Caract_Largeur;Caract_PoidsNet\n"
+COLONNE_MAPPING = {
+    'Nomenclature_FAB': 'Nomenclature_FAB',
+    'Produits_IdentifiantExterne': 'Produits_IdentifiantExterne',
+    'ProduitsRelations_TypeRelation': 'ProduitsRelations_TypeRelation',
+    'ProduitsRelations_IDParent': 'ProduitsRelations_IDParent',
+    'Produits_ReferenceFabriquant': 'Produits_ReferenceFabriquant',
+    'Produits_ReferenceCommande': 'Produits_ReferenceCommande',
+    'Produits_Libelle': 'Produits_Libelle',
+    'Produits_Description': 'Produits_Description',
+    'Produits_CodeEAN': 'Produits_CodeEAN',
+    'ProduitEcotaxe_Code_EcoMob11': 'ProduitEcotaxe_Code_EcoMob11',
+    'ProduitEcotaxe_Code_EcoMob3': 'ProduitEcotaxe_Code_EcoMob3',
+    'ProduitEcotaxe_MontantHT_EcoMob3': 'ProduitEcotaxe_MontantHT_EcoMob3',
+    'ProduitEcotaxe_Code_DEEE': 'ProduitEcotaxe_Code_DEEE',
+    'ProduitEcotaxe_MontantHT_DEEE': 'ProduitEcotaxe_MontantHT_DEEE',
+    'Produits_TVAReduite': 'Produits_TVAReduite',
+    'Produits_TVAReduiteTaux': 'Produits_TVAReduiteTaux',
+    'Produits_Points': 'Produits_Points',
+    'Produits_PrixVenteConseille': 'Produits_PrixVenteConseille',
+    'Produits_Hashtags': 'Produits_Hashtags',
+    'RegroupementProduits': 'RegroupementProduits',
+    'Caract_Collection': 'Caract_Collection',
+    'Caract_CollectionDesc': 'Caract_CollectionDesc',
+    'Caract_DateNouveaute': 'Caract_DateNouveaute',
+    'Caract_DateSortieCollection': 'Caract_DateSortieCollection',
+    'Caract_FamilleProduit': 'Caract_FamilleProduit',
+    'Caract_FonctionConvertible_Fixe': 'Caract_FonctionConvertible_Fixe',
+    'Caract_GroupeProduit': 'Caract_GroupeProduit',
+    'Caract_GroupeProduitDesc': 'Caract_GroupeProduitDesc',
+    'Caract_Modele': 'Caract_Modele',
+    'Caract_NbrAssise': 'Caract_NbrAssise',
+    'Caract_NbrPlace': 'Caract_NbrPlace',
+    'Caract_PositionAccoudoir': 'Caract_PositionAccoudoir',
+    'Caract_SousFamilleProduit': 'Caract_SousFamilleProduit',
+    'Caract_Style': 'Caract_Style',
+    'Caract_TypeAccessoiresChaisesCanapes': 'Caract_TypeAccessoiresChaisesCanapes',
+    'Caract_TypeCanape': 'Caract_TypeCanape',
+    'Caract_TypeCommode': 'Caract_TypeCommode',
+    'Caract_TypeFauteuil': 'Caract_TypeFauteuil',
+    'Caract_TypeFinitionSofa': 'Caract_TypeFinitionSofa',
+    'Caract_TypeLit': 'Caract_TypeLit',
+    'Caract_TypeMatelas': 'Caract_TypeMatelas',
+    'Caract_TypeMatelasDesc': 'Caract_TypeMatelasDesc',
+    'Caract_TypePouf': 'Caract_TypePouf',
+    'Caract_TypeSommier': 'Caract_TypeSommier',
+    'Caract_TypeSommierDesc': 'Caract_TypeSommierDesc',
+    'Caract_Usage': 'Caract_Usage',
+    'Caract_Dimension': 'Caract_Dimension',
+    'Caract_AccoudoirCouleur': 'Caract_AccoudoirCouleur',
+    'Caract_AccoudoirHauteur': 'Caract_AccoudoirHauteur',
+    'Caract_AccoudoirLargeur': 'Caract_AccoudoirLargeur',
+    'Caract_AccoudoirProfondeur': 'Caract_AccoudoirProfondeur',
+    'Caract_AssiseHauteur': 'Caract_AssiseHauteur',
+    'Caract_AssiseLargeur': 'Caract_AssiseLargeur',
+    'Caract_AssiseProfondeur': 'Caract_AssiseProfondeur',
+    'Caract_Diametre': 'Caract_Diametre',
+    'Caract_DiametreMax': 'Caract_DiametreMax',
+    'Caract_DiametreTechnique': 'Caract_DiametreTechnique',
+    'Caract_DimensionTissu': 'Caract_DimensionTissu',
+    'Caract_DossierHauteur': 'Caract_DossierHauteur',
+    'Caract_DossierLargeur': 'Caract_DossierLargeur',
+    'Caract_EpaisseurMatelas': 'Caract_EpaisseurMatelas',
+    'Caract_Hauteur': 'Caract_Hauteur',
+    'Caract_HauteurMax': 'Caract_HauteurMax',
+    'Caract_HauteurTechnique': 'Caract_HauteurTechnique',
+    'Caract_Largeur': 'Caract_Largeur',
+    'Caract_LargeurAllonge': 'Caract_LargeurAllonge',
+    'Caract_LargeurMatelas': 'Caract_LargeurMatelas',
+    'Caract_LargeurMax': 'Caract_LargeurMax',
+    'Caract_LargeurTechnique': 'Caract_LargeurTechnique',
+    'Caract_Longueur': 'Caract_Longueur',
+    'Caract_LongueurAllonge': 'Caract_LongueurAllonge',
+    'Caract_LongueurMatelas': 'Caract_LongueurMatelas',
+    'Caract_LongueurMax': 'Caract_LongueurMax',
+    'Caract_LongueurTechnique': 'Caract_LongueurTechnique',
+    'Caract_PiedHauteur': 'Caract_PiedHauteur',
+    'Caract_PoidsNet': 'Caract_PoidsNet',
+    'Caract_Profondeur': 'Caract_Profondeur',
+    'Caract_ProfondeurMax': 'Caract_ProfondeurMax',
+    'Caract_ProfondeurTechnique': 'Caract_ProfondeurTechnique',
+    'Caract_Taille': 'Caract_Taille',
+    'Caract_TailleLit': 'Caract_TailleLit',
+    'Caract_Volume': 'Caract_Volume',
+    'Caract_CategorieTissusCoutil': 'Caract_CategorieTissusCoutil',
+    'Caract_CodeCouleurAllonge1': 'Caract_CodeCouleurAllonge1',
+    'Caract_CodeCouleurCorps1': 'Caract_CodeCouleurCorps1',
+    'Caract_CodeCouleurDessusTable1': 'Caract_CodeCouleurDessusTable1',
+    'Caract_CodeCouleurFacade1': 'Caract_CodeCouleurFacade1',
+    'Caract_CodeTissusCoutil': 'Caract_CodeTissusCoutil',
+    'Caract_CompositionMateriau1': 'Caract_CompositionMateriau1',
+    'Caract_Couleur': 'Caract_Couleur',
+    'Caract_CouleurAllonge1': 'Caract_CouleurAllonge1',
+    'Caract_CouleurAllongeTableDesc': 'Caract_CouleurAllongeTableDesc',
+    'Caract_CouleurAutre1': 'Caract_CouleurAutre1',
+    'Caract_CouleurCorps1': 'Caract_CouleurCorps1',
+    'Caract_CouleurCorps1Desc': 'Caract_CouleurCorps1Desc',
+    'Caract_CouleurDessusTable1': 'Caract_CouleurDessusTable1',
+    'Caract_CouleurDessusTableDesc': 'Caract_CouleurDessusTableDesc',
+    'Caract_CouleurFacade1': 'Caract_CouleurFacade1',
+    'Caract_CouleurFacade1Desc': 'Caract_CouleurFacade1Desc',
+    'Caract_FaceMatelas': 'Caract_FaceMatelas',
+    'Caract_FinitionAutre1': 'Caract_FinitionAutre1',
+    'Caract_FinitionProduit': 'Caract_FinitionProduit',
+    'Caract_GammeTissusCoutil': 'Caract_GammeTissusCoutil',
+    'Caract_MateriauAllonge': 'Caract_MateriauAllonge',
+    'Caract_MateriauAllongeDesc': 'Caract_MateriauAllongeDesc',
+    'Caract_MateriauCorps1': 'Caract_MateriauCorps1',
+    'Caract_MateriauCorpsDesc': 'Caract_MateriauCorpsDesc',
+    'Caract_MateriauFacade1': 'Caract_MateriauFacade1',
+    'Caract_MateriauFacade1Desc': 'Caract_MateriauFacade1Desc',
+    'Caract_MateriauInterieurMatelas1': 'Caract_MateriauInterieurMatelas1',
+    'Caract_MateriauInterieurMatelas1Desc': 'Caract_MateriauInterieurMatelas1Desc',
+    'Caract_MateriauTissusCoutil1': 'Caract_MateriauTissusCoutil1',
+    'Caract_MateriauTissusCoutilDesc': 'Caract_MateriauTissusCoutilDesc',
+    'Caract_Matiere': 'Caract_Matiere',
+    'Caract_NbrAllonge': 'Caract_NbrAllonge',
+    'Caract_NbrPoignee': 'Caract_NbrPoignee',
+    'Caract_ReferenceTissusCoutil': 'Caract_ReferenceTissusCoutil',
+    'Caract_TissusCoutilDesc': 'Caract_TissusCoutilDesc',
+    'Caract_TraitementCoutil': 'Caract_TraitementCoutil',
+    'Caract_TraitementCoutilDesc': 'Caract_TraitementCoutilDesc',
+    'Caract_TypeAllonge': 'Caract_TypeAllonge',
+    'Caract_TypeBois': 'Caract_TypeBois',
+    'Caract_TypeBoisFacade1': 'Caract_TypeBoisFacade1',
+    'Caract_TypeChantTable': 'Caract_TypeChantTable',
+    'Caract_TypeChantTableDesc': 'Caract_TypeChantTableDesc',
+    'Caract_TypeMetal': 'Caract_TypeMetal',
+    'Caract_TypeTissus': 'Caract_TypeTissus',
+    'Caract_ExtensionGarantie': 'Caract_ExtensionGarantie',
+    'Caract_GarantieDesc': 'Caract_GarantieDesc',
+    'Caract_NbrAnneeGarantie': 'Caract_NbrAnneeGarantie',
+    'Caract_CaracteristiqueCle1': 'Caract_CaracteristiqueCle1',
+    'Caract_ColisDimension': 'Caract_ColisDimension',
+    'Caract_ColisHauteur': 'Caract_ColisHauteur',
+    'Caract_ColisLongueur': 'Caract_ColisLongueur',
+    'Caract_ColisProfondeur': 'Caract_ColisProfondeur',
+    'Caract_DateFinCommande': 'Caract_DateFinCommande',
+    'Caract_DehoussableMatelasDesc': 'Caract_DehoussableMatelasDesc',
+    'Caract_DescrCoussin': 'Caract_DescrCoussin',
+    'Caract_DossierTypeReglage': 'Caract_DossierTypeReglage',
+    'Caract_Eclairage': 'Caract_Eclairage',
+    'Caract_EstAntiAcariens': 'Caract_EstAntiAcariens',
+    'Caract_EstAssemble': 'Caract_EstAssemble',
+    'Caract_EstAvecAccoudoir': 'Caract_EstAvecAccoudoir',
+    'Caract_EstAvecAppuiTete': 'Caract_EstAvecAppuiTete',
+    'Caract_EstAvecCranSurete': 'Caract_EstAvecCranSurete',
+    'Caract_EstAvecEclairage': 'Caract_EstAvecEclairage',
+    'Caract_EstAvecRangement': 'Caract_EstAvecRangement',
+    'Caract_EstAvecReposePieds': 'Caract_EstAvecReposePieds',
+    'Caract_EstAvecRoulette': 'Caract_EstAvecRoulette',
+    'Caract_EstAvecTiroir': 'Caract_EstAvecTiroir',
+    'Caract_EstContremarquable': 'Caract_EstContremarquable',
+    'Caract_EstDemontable': 'Caract_EstDemontable',
+    'Caract_EstDoubleCorps': 'Caract_EstDoubleCorps',
+    'Caract_EstEcoResponsable': 'Caract_EstEcoResponsable',
+    'Caract_EstElectrique': 'Caract_EstElectrique',
+    'Caract_EstEmpilable': 'Caract_EstEmpilable',
+    'Caract_EstErgonomique': 'Caract_EstErgonomique',
+    'Caract_EstExclusif': 'Caract_EstExclusif',
+    'Caract_EstFinSerie': 'Caract_EstFinSerie',
+    'Caract_EstLitDouble': 'Caract_EstLitDouble',
+    'Caract_EstMassant': 'Caract_EstMassant',
+    'Caract_QuantiteStock': 'Caract_QuantiteStock',
+    'Caract_DelaiLivraison': 'Caract_DelaiLivraison',
+    'Caract_EstMatelasinclus': 'Caract_EstMatelasinclus',
+    'Caract_EstMeubleAngle': 'Caract_EstMeubleAngle',
+    'Caract_EstModulable': 'Caract_EstModulable',
+    'Caract_EstPivotant': 'Caract_EstPivotant',
+    'Caract_EstPliante': 'Caract_EstPliante',
+    'Caract_EstReglableHauteur': 'Caract_EstReglableHauteur',
+    'Caract_EstRelaxation': 'Caract_EstRelaxation',
+    'Caract_EstReleveur': 'Caract_EstReleveur',
+    'Caract_EstRetourautomatique': 'Caract_EstRetourautomatique',
+    'Caract_EstReversible': 'Caract_EstReversible',
+    'Caract_EstSommierinclus': 'Caract_EstSommierinclus',
+    'Caract_Extensible_Allonge': 'Caract_Extensible_Allonge',
+    'Caract_FerragePorte': 'Caract_FerragePorte',
+    'Caract_Forme': 'Caract_Forme',
+    'Caract_MethodeAssemblage1': 'Caract_MethodeAssemblage1',
+    'Caract_ModeAjustement': 'Caract_ModeAjustement',
+    'Caract_NbrAccoudoir': 'Caract_NbrAccoudoir',
+    'Caract_NbrColis': 'Caract_NbrColis',
+    'Caract_NbrCoussin': 'Caract_NbrCoussin',
+    'Caract_NbrElementsDansSet': 'Caract_NbrElementsDansSet',
+    'Caract_NbrEtageres': 'Caract_NbrEtageres',
+    'Caract_NbrPlaceRelaxation': 'Caract_NbrPlaceRelaxation',
+    'Caract_PositionPlaceRelaxation': 'Caract_PositionPlaceRelaxation',
+    'Caract_NbrPorte': 'Caract_NbrPorte',
+    'Caract_NbrTiroir': 'Caract_NbrTiroir',
+    'Caract_TypeAjustementAppuiTete': 'Caract_TypeAjustementAppuiTete',
+    'Caract_TypeMotorisation': 'Caract_TypeMotorisation',
+    'Caract_TypeOuverturePlateau': 'Caract_TypeOuverturePlateau',
+    'Caract_CouleurPlateau': 'Caract_CouleurPlateau',
+    'Caract_MateriauPlateau': 'Caract_MateriauPlateau',
+    'Caract_TypeOuverturePorte': 'Caract_TypeOuverturePorte',
+    'Caract_TypePose': 'Caract_TypePose',
+    'Caract_UtilisationCouchage': 'Caract_UtilisationCouchage',
+    'Caract_VolumeColis': 'Caract_VolumeColis',
+    'CaractEstCouchage': 'CaractEstCouchage',
+    'Caract_CaracteristiqueRevetement': 'Caract_CaracteristiqueRevetement',
+    'Caract_CategorieTissu': 'Caract_CategorieTissu',
+    'Caract_CategorieTissuElement1': 'Caract_CategorieTissuElement1',
+    'Caract_CategorieTissuElement2': 'Caract_CategorieTissuElement2',
+    'Caract_CodeTissuElement1': 'Caract_CodeTissuElement1',
+    'Caract_CodeTissuElement2': 'Caract_CodeTissuElement2',
+    'Caract_GammeTissuElement1': 'Caract_GammeTissuElement1',
+    'Caract_GammeTissuElement2': 'Caract_GammeTissuElement2',
+    'Caract_MateriauTissuDescElement1': 'Caract_MateriauTissuDescElement1',
+    'Caract_MateriauTissuDescElement2': 'Caract_MateriauTissuDescElement2',
+    'Caract_MateriauTissuElement1': 'Caract_MateriauTissuElement1',
+    'Caract_MateriauTissuElement2': 'Caract_MateriauTissuElement2',
+    'Caract_ReferenceTissuElement1': 'Caract_ReferenceTissuElement1',
+    'Caract_ReferenceTissuElement2': 'Caract_ReferenceTissuElement2',
+    'Caract_TonCouture': 'Caract_TonCouture',
+    'Caract_TypeCouture': 'Caract_TypeCouture',
+    'Caract_TypeCoutureDesc': 'Caract_TypeCoutureDesc',
+    'Caract_AccoudoirDensiteMousse': 'Caract_AccoudoirDensiteMousse',
+    'Caract_AccoudoirSuspensionDesc': 'Caract_AccoudoirSuspensionDesc',
+    'Caract_AccueilMatelas': 'Caract_AccueilMatelas',
+    'Caract_AssiseFermete': 'Caract_AssiseFermete',
+    'Caract_AssiseDensiteMousse': 'Caract_AssiseDensiteMousse',
+    'Caract_AssiseSuspensionDesc': 'Caract_AssiseSuspensionDesc',
+    'Caract_CodeCouleurPied1': 'Caract_CodeCouleurPied1',
+    'Caract_ConfortMatelas': 'Caract_ConfortMatelas',
+    'Caract_ConfortMatelasDesc': 'Caract_ConfortMatelasDesc',
+    'Caract_ConfortSommier': 'Caract_ConfortSommier',
+    'Caract_ConfortSommierDesc': 'Caract_ConfortSommierDesc',
+    'Caract_CouleurPied1': 'Caract_CouleurPied1',
+    'Caract_CouleurPiedDesc': 'Caract_CouleurPiedDesc',
+    'Caract_DescAccoudoir': 'Caract_DescAccoudoir',
+    'Caract_DossierDensiteMousse': 'Caract_DossierDensiteMousse',
+    'Caract_DossierMateriau': 'Caract_DossierMateriau',
+    'Caract_DossierSuspensionDesc': 'Caract_DossierSuspensionDesc',
+    'Caract_MateriauDescPied1': 'Caract_MateriauDescPied1',
+    'Caract_MateriauDessusTable1': 'Caract_MateriauDessusTable1',
+    'Caract_MateriauDessusTableDesc': 'Caract_MateriauDessusTableDesc',
+    'Caract_MateriauPied1': 'Caract_MateriauPied1',
+    'Caract_MateriauStructureBati1': 'Caract_MateriauStructureBati1',
+    'Caract_MateriauStructureDescBati1': 'Caract_MateriauStructureDescBati1',
+    'Caract_ModelePied': 'Caract_ModelePied',
+    'Caract_ModelePiedDesc': 'Caract_ModelePiedDesc',
+    'Caract_NbrRessort': 'Caract_NbrRessort',
+    'Caract_NbrZoneConfort': 'Caract_NbrZoneConfort',
+    'Caract_NoyauMatelas': 'Caract_NoyauMatelas',
+    'Caract_SoutienMatelas': 'Caract_SoutienMatelas',
+    'Caract_SuspensionMatelas': 'Caract_SuspensionMatelas',
+    'Caract_SuspensionMatelasDesc': 'Caract_SuspensionMatelasDesc',
+    'Caract_SuspensionSommier': 'Caract_SuspensionSommier',
+    'Caract_SuspensionSommierDesc': 'Caract_SuspensionSommierDesc',
+    'Caract_TypeAccoudoir': 'Caract_TypeAccoudoir',
+    'Caract_RaisonTypeRelation': 'Caract_RaisonTypeRelation',
+
+
+}
+
 ECOPART_MAPPING = {
-    0.04: "002",
+0.04: "002",
     0.08: "003",
     0.13: "004",
     0.17: "005",
@@ -253,6 +510,7 @@ def show_success_message():
     success_window.after(2000, success_window.destroy)
 
 def create_new_catalog():
+
     def save_new_catalog():
         fabricant = entry_fabricant.get().strip()
         if not fabricant:
@@ -273,7 +531,7 @@ def create_new_catalog():
     top = tk.Toplevel()
     top.title("Nouveau catalogue")
 
-    label_fabricant = tk.Label(top, text="Nom du fabricant:")
+    label_fabricant = tk.Label(top, text="Nom du fabricant:", height=10, width=100,font=22)
     label_fabricant.pack()
     entry_fabricant = tk.Entry(top)
     entry_fabricant.pack()
@@ -291,13 +549,58 @@ def add_to_existing_catalog():
     top = tk.Toplevel()
     top.title("Ajouter au catalogue existant")
 
-    label_choose_csv = tk.Label(top, text="Choisir le fichier CSV à modifier:")
+    label_choose_csv = tk.Label(top, text="Choisir le fichier CSV à modifier:", height=10, width=100,font=22)
     label_choose_csv.pack()
 
     button_choose_csv = tk.Button(top, text="Choisir fichier", command=choose_csv_file)
     button_choose_csv.pack()
 
+def update_csv_header(filename, new_column_name):
+    with open(filename, 'r') as file:
+        lines = file.readlines()
+
+    # Ajouter la nouvelle colonne à l'entête
+    header = lines[0].strip() + ";" + new_column_name + "\n"
+    lines[0] = header
+
+    # Réécrire le fichier avec la nouvelle entête
+    with open(filename, 'w') as file:
+        file.writelines(lines)
+
+
 def create_data_entry(filename):
+    def add_new_column():
+        def add_column():
+            nonlocal row_count
+            new_column_name = new_column_entry.get().strip()
+            if new_column_name in COLONNE_MAPPING:
+                lbl = tk.Label(root, text=new_column_name)
+                lbl.grid(row=row_count, column=0)
+                entry = tk.Entry(root)
+                entry.grid(row=row_count, column=1)
+                entries.append(entry)
+                row_count += 1
+                button_save.grid(row=row_count, column=0)
+
+                update_csv_header(filename, new_column_name)
+                new_column_window.destroy()
+
+
+            else:
+                tk.messagebox.showerror("Erreur", "La valeur saisie ne correspond pas.")
+
+        new_column_window = tk.Toplevel(root)
+        new_column_window.title("Ajouter une colonne")
+
+        new_column_label = tk.Label(new_column_window, text="Nom de la colonne:")
+        new_column_label.pack()
+
+        new_column_entry = tk.Entry(new_column_window)
+        new_column_entry.pack()
+
+        button_add_column = tk.Button(new_column_window, text="Ajouter", command=add_column)
+        button_add_column.pack()
+
     def save_and_clear():
         save_to_csv(entries, filename)
         for entry in entries:
@@ -310,6 +613,7 @@ def create_data_entry(filename):
     root.geometry("800x600")
 
     entries = []
+    row_count = 0
 
     labels = ["Nom de la collection", "Référence du produit", "Libellé du produit", "Type de produit", "Description du produit", "Prix du produit", "Eco-part", "Longueur", "Largeur", "Hauteur", "Poids"]
     for i, label in enumerate(labels):
@@ -328,21 +632,46 @@ def create_data_entry(filename):
         entry.grid(row=i, column=1)
         entries.append(entry if label != "Type de produit" else type_produit_var)
 
+    row_count = len(labels)
+    button_add_column = tk.Button(root, text="+", command=add_new_column)
+    button_add_column.grid(row=row_count, column=2)
+
     button_save = tk.Button(root, text="Sauvegarder", command=save_and_clear)
-    button_save.grid(row=len(labels), column=0)
+    button_save.grid(row=row_count, column=0)
 
     root.mainloop()
+
+
 
 def main():
     root = tk.Tk()
     root.title("Gestionnaire de catalogues de meubles")
     root.geometry("400x200")
+    root.configure(bg='white')  # Fond blanc pour l'application
 
-    button_new_catalog = tk.Button(root, text="Nouveau catalogue", command=create_new_catalog)
-    button_new_catalog.pack()
+    # Définir l'icône de la fenêtre
+    root.iconbitmap('logoYesWeHome.ico')
 
-    button_add_to_existing = tk.Button(root, text="Ajouter au catalogue existant", command=add_to_existing_catalog)
-    button_add_to_existing.pack()
+    # Charger le logo, le redimensionner et le placer au centre
+    image = Image.open('logoYesWeHome.png')
+    image = image.resize((100, 100))  # Redimensionner l'image à 100x100
+    logo_image = ImageTk.PhotoImage(image)
+    logo_label = tk.Label(root, image=logo_image, bg='white')  # Fond blanc pour le label
+    logo_label.grid(row=0, column=0, columnspan=2)  # Centrer le logo
+
+    # Style pour les boutons
+    button_style = {'font': ('Helvetica', 14), 'bg': '#ffbf23', 'fg': 'white', 'borderwidth': 1, 'relief': 'solid'}
+
+    button_new_catalog = tk.Button(root, text="Nouveau catalogue", command=create_new_catalog, **button_style)
+    button_new_catalog.grid(row=1, column=0, columnspan=2, sticky=tk.EW)
+
+    button_add_to_existing = tk.Button(root, text="Ajouter au catalogue existant", command=add_to_existing_catalog, **button_style)
+    button_add_to_existing.grid(row=2, column=0, columnspan=2, sticky=tk.EW)
+
+    # Configurer les lignes et les colonnes pour qu'elles s'étirent avec la fenêtre
+    root.grid_rowconfigure(1, weight=1)
+    root.grid_rowconfigure(2, weight=1)
+    root.grid_columnconfigure(0, weight=1)
 
     root.mainloop()
 
