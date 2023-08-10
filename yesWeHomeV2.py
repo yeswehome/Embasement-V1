@@ -3,10 +3,12 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 import tkinter.ttk as ttk
 import pandas as pd
+import csv
 from PIL import Image, ImageTk
 
 # En-tête du fichier CSV pour les colonnes
 csv_header = "Caract_Collection;Produits_ReferenceFabriquant;Produits_Libelle;Caract_FamilleProduit;Produits_Description;Produits_Points;ProduitEcotaxe_Code_EcoMob3;ProduitEcotaxe_MontantHT_EcoMob3;Caract_Longueur;Caract_Hauteur;Caract_Largeur;Caract_PoidsNet\n"
+header_labels = csv_header.strip().split(";")
 COLONNE_MAPPING = {
     'Nomenclature_FAB': 'Nomenclature_FAB',
     'Produits_IdentifiantExterne': 'Produits_IdentifiantExterne',
@@ -567,6 +569,17 @@ def update_csv_header(filename, new_column_name):
     with open(filename, 'w') as file:
         file.writelines(lines)
 
+def get_additional_columns(filename):
+    additional_columns = []
+    with open(filename, newline='', encoding='utf-8') as csvfile:
+        reader = csv.reader(csvfile, delimiter=';')
+        for row in reader:
+            # Supposer que les noms de colonne sont dans la première ligne
+            additional_columns = [col for col in row if col not in header_labels]
+            break
+    return additional_columns
+
+
 
 def create_data_entry(filename):
     def add_new_column():
@@ -633,6 +646,17 @@ def create_data_entry(filename):
         entries.append(entry if label != "Type de produit" else type_produit_var)
 
     row_count = len(labels)
+
+    # Ajout des colonnes supplémentaires depuis le fichier CSV
+    additional_columns = get_additional_columns(filename)
+    for col in additional_columns:
+        lbl = tk.Label(root, text=col)
+        lbl.grid(row=row_count, column=0)
+        entry = tk.Entry(root)
+        entry.grid(row=row_count, column=1)
+        entries.append(entry)
+        row_count += 1
+
     button_add_column = tk.Button(root, text="+", command=add_new_column)
     button_add_column.grid(row=row_count, column=2)
 
